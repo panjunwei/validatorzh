@@ -21,6 +21,63 @@ import (
 	zh_translate "github.com/go-playground/validator/v10/translations/zh"
 )
 
+func LanguageValidate(i interface{}) error {
+	validate := validator.New()
+	// register mobile
+	err := validate.RegisterValidation("mobile", mobile)
+	if err != nil {
+		return err
+	}
+
+	// register idcard
+	err = validate.RegisterValidation("idcard", idcard)
+	if err != nil {
+		return err
+	}
+
+	// register label for better prompt
+	validate.RegisterTagNameFunc(func(filed reflect.StructField) string {
+		name := filed.Tag.Get("en_label")
+		return name
+	})
+
+	// i18n
+	e := en.New()
+	uniTrans := ut.New(e, e, zh.New(), zh_Hant_TW.New())
+	translator, _ := uniTrans.GetTranslator("zh")
+	zh_translate.RegisterDefaultTranslations(validate, translator)
+
+	// 添加手机验证的函数
+	validate.RegisterTranslation("mobile", translator, func(ut ut.Translator) error {
+		return ut.Add("mobile", "{0}格式错误", true)
+	}, func(ut ut.Translator, ve validator.FieldError) string {
+		t, _ := ut.T("mobile", ve.Field(), ve.Field())
+		return t
+	})
+
+	validate.RegisterTranslation("idcard", translator, func(ut ut.Translator) error {
+		return ut.Add("idcard", "请输入正确的{0}号码", true)
+	}, func(ut ut.Translator, ve validator.FieldError) string {
+		t, _ := ut.T("idcard", ve.Field(), ve.Field())
+		return t
+	})
+	var sb strings.Builder
+
+	err = validate.Struct(i)
+
+	if err != nil {
+		errs := err.(validator.ValidationErrors)
+		for _, err := range errs {
+			sb.WriteString(err.Translate(translator))
+			sb.WriteString(" ")
+		}
+
+		return errors.New(sb.String())
+	}
+	return nil
+}
+
+
 func Validate(i interface{}) error {
 	validate := validator.New()
 	// register mobile
