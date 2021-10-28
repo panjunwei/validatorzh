@@ -1,4 +1,4 @@
-module github.com/panjunwei/validator-zh
+module github.com/panjunwei/validatorzh
 
 go 1.14
 
